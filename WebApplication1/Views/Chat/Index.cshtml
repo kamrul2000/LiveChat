@@ -1,0 +1,199 @@
+﻿@{
+    ViewData["Title"] = "Live Chat";
+}
+
+<h2 style="text-align:center; margin-bottom: 1rem;">💬 Live Chat</h2>
+
+<div class="chat-container">
+    <div id="chatWindow" class="chat-window">
+        <ul id="messagesList" class="messages-list"></ul>
+    </div>
+    <div class="chat-input">
+        <input type="text" id="userInput" placeholder="Your name" />
+        <div class="message-box">
+            <input type="text" id="messageInput" placeholder="Type your message..." />
+            <button id="sendButton">Send</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .chat-container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 1rem;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        font-family: 'Segoe UI', sans-serif;
+    }
+
+    .chat-window {
+        border: 1px solid #ddd;
+        padding: 1rem;
+        height: 400px;
+        overflow-y: auto;
+        background-color: #fafafa;
+        border-radius: 8px;
+    }
+
+    .messages-list {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .message {
+        margin-bottom: 1rem;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        animation: fadeIn 0.3s ease-in;
+    }
+
+        .message.other {
+            align-items: flex-end;
+        }
+
+    .user {
+        font-size: 0.85rem;
+        font-weight: bold;
+        margin-bottom: 2px;
+        color: #333;
+    }
+
+    .content {
+        max-width: 80%;
+        padding: 10px 14px;
+        border-radius: 20px;
+        background-color: #007bff;
+        color: white;
+        position: relative;
+        word-wrap: break-word;
+    }
+
+    .message.other .content {
+        background-color: #e4e6eb;
+        color: #111;
+    }
+
+    .timestamp {
+        font-size: 0.75rem;
+        color: #999;
+        margin-top: 4px;
+        align-self: flex-end;
+    }
+
+    .chat-input {
+        margin-top: 1rem;
+    }
+
+    #userInput {
+        width: 100%;
+        margin-bottom: 10px;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+    }
+
+    .message-box {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    #messageInput {
+        flex: 1;
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+    }
+
+    #sendButton {
+        padding: 10px 16px;
+        background-color: #28a745;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+        #sendButton:hover {
+            background-color: #218838;
+        }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+</style>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+<script>
+    const connection = new signalR.HubConnectionBuilder()
+        .withUrl("/chathub")
+        .build();
+
+    connection.on("ReceiveMessage", function (user, message) {
+        const currentUser = document.getElementById("userInput").value.trim();
+        const messagesList = document.getElementById("messagesList");
+
+        const li = document.createElement("li");
+        li.className = "message";
+
+        if (user !== currentUser && currentUser !== "") {
+            li.classList.add("other");
+        }
+
+        const userSpan = document.createElement("span");
+        userSpan.className = "user";
+        userSpan.textContent = user;
+
+        const contentDiv = document.createElement("div");
+        contentDiv.className = "content";
+        contentDiv.textContent = message;
+
+        const timestampDiv = document.createElement("div");
+        timestampDiv.className = "timestamp";
+        timestampDiv.textContent = new Date().toLocaleTimeString();
+
+        contentDiv.appendChild(timestampDiv);
+        li.appendChild(userSpan);
+        li.appendChild(contentDiv);
+        messagesList.appendChild(li);
+
+        const chatWindow = document.getElementById("chatWindow");
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    });
+
+    document.getElementById("sendButton").addEventListener("click", function (event) {
+        const user = document.getElementById("userInput").value.trim();
+        const message = document.getElementById("messageInput").value.trim();
+
+        if (user && message) {
+            connection.invoke("SendMessage", user, message).catch(function (err) {
+                return console.error("Error sending message: " + err.toString());
+            });
+
+            document.getElementById("messageInput").value = "";
+        }
+
+        event.preventDefault();
+    });
+
+    connection.start().catch(function (err) {
+        return console.error("Error starting connection: " + err.toString());
+    });
+</script>
